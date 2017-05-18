@@ -55,12 +55,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-/*
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
-*/
-
 public class MainActivity extends Activity{
 
     // private ConfigTab configTab;
@@ -173,6 +167,7 @@ public class MainActivity extends Activity{
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
+                showDiskList(1);
                 if (fileIsExists(wimfile10)) {
                     //setWiminfo();
                     i=3;
@@ -308,6 +303,11 @@ public class MainActivity extends Activity{
         //downloads_rm = "rm -f " + wimfile10 + "  " + efi_win ;
         downloads_rm = "rm -f " + wimfile10 ;
 
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
+
+    private void showDiskList(int flag){
         //just show disk list
         section_select();
 
@@ -319,6 +319,7 @@ public class MainActivity extends Activity{
         }
         */
 
+        main.removeAllViews();
         for (Disk d : mDisks) {
             LinearLayout space = new LinearLayout(this);
             space.setOrientation(LinearLayout.HORIZONTAL);
@@ -355,10 +356,7 @@ public class MainActivity extends Activity{
 
         main.addView(mLine);
         main.addView(tvInfo);
-
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
-
 
     private void setOnNextStep(int flag){
         notice_flag = flag;
@@ -917,7 +915,6 @@ public class MainActivity extends Activity{
 
             float w = (float)0.1 + ((float)(vol.getSectorEnd() - vol.getSectorStart())) / d.getSectorNum();
 
-            Log.i("getDiskView", "currect W: " + w);
             LinearLayout view = new LinearLayout(this);
             LinearLayout.LayoutParams viewParams = new LinearLayout.LayoutParams(0, viewHeight, w);
             view.setLayoutParams(viewParams);
@@ -1037,6 +1034,7 @@ public class MainActivity extends Activity{
         section_detail = new ArrayList<>();
         disk_size = new ArrayList<>();
 
+        mDisks.clear();
         deny_part = new ArrayList<>();
         Disk tmpDisk = null ;
 
@@ -1104,11 +1102,11 @@ public class MainActivity extends Activity{
         }
         Log.v("WinRec", "EFI partition: " + choose_efi);
 
-
         //final ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, R.layout.listview_item1, data);
+       /*
         ArrayList<String> datas = new ArrayList<>();
         ArrayList<String> deny_datas = new ArrayList<>();
-        /*
+
         for (int k = 0; k < data.length; k++) {
             datas.add(data[k]);
         }*/
