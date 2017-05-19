@@ -99,6 +99,19 @@
         android:background="@android:color/white"
         >
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="@string/main_bar"
+            android:textSize="25dp"
+            android:textColor="@color/black"
+            />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="2dp"
+            android:background="@android:color/black"
+            />
     <LinearLayout
         android:id="@+id/targetdisk"
         android:layout_width="match_parent"
@@ -107,14 +120,6 @@
         android:layout_weight="1"
         android:orientation="vertical"
         android:background="@android:color/white" >
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="50dp"
-            android:text="@string/main_bar"
-            android:textSize="25dp"
-            android:textColor="@color/black"
-            />
 
         <ListView
             android:id="@+id/listView2"
