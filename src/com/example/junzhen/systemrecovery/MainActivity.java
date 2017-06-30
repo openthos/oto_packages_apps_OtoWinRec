@@ -13,6 +13,7 @@ import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -23,6 +24,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -53,7 +55,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.SynchronousQueue;
 import java.util.regex.Pattern;
+
+/*
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+*/
 
 public class MainActivity extends Activity{
 
@@ -98,12 +107,16 @@ public class MainActivity extends Activity{
 
     private int pos = -1;
     private int pos_sys = -1;
+    private int NextStepFlag = 0;
 
     private String chooseid = "";
     private String choose_section = "";
     private String choose_partition = "";
+    private String choose_os = "";
     private String choose_efi = "";
+    private String config_dir = "/storage/emulated/legacy/tsing_recovery/";
     private String efi_dir="/data/local/tmp/efi/";
+    private String wim_config="http://dev.openthos.org/winimg/wim.config";
     private String url_win10,url_efi;
 
     private String downloads_rm ;
@@ -124,7 +137,7 @@ public class MainActivity extends Activity{
     private ImageButton offline, online;
 
     private Button recovery,helpMessagge;
-    private TextView rec_tv;
+    private TextView header_tv,rec_tv;
 
     private Button  offline_win10, online_win10, efi_backup;
 
@@ -149,7 +162,7 @@ public class MainActivity extends Activity{
         online_win10 = (Button) findViewById(R.id.online_win10);
 
         efi_backup = (Button) findViewById(R.id.backup_efi);
-
+        header_tv = (TextView) findViewById(R.id.header_tv);
         main = (LinearLayout) findViewById(R.id.targetdisk);
 
         helpMessagge=(Button) findViewById(R.id.helpMessage);
@@ -167,6 +180,7 @@ public class MainActivity extends Activity{
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
+                setOffNextStep();
                 showDiskList(1);
                 if (fileIsExists(wimfile10)) {
                     //setWiminfo();
@@ -182,6 +196,8 @@ public class MainActivity extends Activity{
                         public void onClick(DialogInterface dialog, int which) {
                             // TODO Auto-generated method stub
                             choose_partition = "";
+                            //showDiskList();
+                            NextStepFlag = 11;
                             setOnNextStep(3);
                         }
                     });
@@ -202,6 +218,9 @@ public class MainActivity extends Activity{
                 // TODO Auto-generated method stub
                 setOffNextStep();
 
+                getWinList(1);
+
+                /*
                 if (fileIsExists(wimfile10)) {
                     AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                     builder.setTitle("提示");
@@ -224,6 +243,7 @@ public class MainActivity extends Activity{
                     j=3;
                     download_dialog();
                 }
+                */
             }
         };
         online_win10.setOnClickListener(online_win10_listener);
@@ -280,21 +300,31 @@ public class MainActivity extends Activity{
             @Override
             public void onClick(View v) {
                 // TODO Auto-generated method stub
-                if (choose_partition.equals("")){
-                    rec_tv.setText("请先选择Windows恢复分区。");
-                    return;
-                }
 
-                    for (int k=0; k < deny_part.size(); k++){
-                        if (choose_partition.equals(deny_part.get(k))){
+                if(NextStepFlag == 11) {
+                    if (choose_partition.equals("")) {
+                        rec_tv.setText("请先选择Windows恢复分区。");
+                        return;
+                    }
+
+                    for (int k = 0; k < deny_part.size(); k++) {
+                        if (choose_partition.equals(deny_part.get(k))) {
                             rec_tv.setText("选择的分区不正确！");
                             return;
                         }
                     }
 
-                checkintergrity();
+                    checkintergrity();
+                    // dialog();
+                }else if(NextStepFlag == 10){
+                    if (choose_os.equals("")) {
+                        rec_tv.setText("请先选择合适的Windows镜像。");
+                        return;
+                    }
 
-               // dialog();
+                    downloadWim();
+                }
+
             }
         };
         recovery.setOnClickListener(recoverylistener);
@@ -303,11 +333,126 @@ public class MainActivity extends Activity{
         //downloads_rm = "rm -f " + wimfile10 + "  " + efi_win ;
         downloads_rm = "rm -f " + wimfile10 ;
 
+        //showDiskList();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
 
+        private void downloadWim(){
+            if (fileIsExists(wimfile10)) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle("提示");
+                builder.setMessage("系统镜像："+choose_os +"\n云盘系统镜像已经存在，是否重新下载？");
+                builder.setNeutralButton("确定", new DialogInterface.OnClickListener() {
 
-    private void showDiskList(int flag){
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        // TODO Auto-generated method stub
+                        exec(downloads_rm);
+                        j=3;
+                        download_dialog();
+                    }
+                });
+                builder.setNegativeButton("取消",null);
+                builder.create();
+                builder.show();
+            } else {
+                //弹出下载对话框
+                j=3;
+                download_dialog();
+            }
+        }
+
+        private void getWinList(int flag){
+
+            if (isNetworkAvailable()) {
+                mProgressDialog = new ProgressDialog(MainActivity.this);
+                // mProgressDialog.setTitle("Downloading...");
+                mProgressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                mProgressDialog.setCanceledOnTouchOutside(false);
+                mProgressDialog.setCancelable(true);
+
+                final DownloadTask downloadTask = new DownloadTask(MainActivity.this);
+
+                mProgressDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialogInterface) {
+
+                        showWinList();
+
+                    }
+                });
+
+                downloadTask.execute(wim_config, config_dir);
+            }else{
+                Toast.makeText(getApplication(), "网络未连接", Toast.LENGTH_LONG).show();
+            }
+
+    }
+
+        private void showWinList() {
+            ArrayList<String> datas = new ArrayList<>();
+            final String devModel = Build.MODEL; //"THTF T Series"
+
+            try{
+                FileInputStream inputStream = new FileInputStream(config_dir + "wim.config");
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+                String str = null;
+                while ((str = bufferedReader.readLine()) != null){
+                    datas.add(str);
+                    Log.v("WinRec", str);
+                }
+
+                inputStream.close();
+                bufferedReader.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+
+            main.removeAllViews();
+            header_tv.setText("云端系统镜像");
+
+            choose_os = "";
+            NextStepFlag = 10;
+            setOnNextStep(3);
+
+            mAdapter = new PartitionsAdapter(this, datas);
+            listview_section.setAdapter(mAdapter);
+            listview_section.setBackgroundColor(Color.WHITE);
+            listview_section.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    //TextView tv = (TextView) view.findViewById(R.id.itemText1);
+                    //tv.setTextColor(Color.WHITE);
+                    //view.setBackgroundResource(R.color.gray);
+
+                    String get_text =  ((TextView) view).getText().toString();
+                    if(get_text.indexOf(devModel) != -1) {
+                        choose_os = get_text.trim().substring(0, 10);
+                        Log.v("WinRec", "OS: " + choose_os);
+
+                        rec_tv.setText("已选择系统版本： " + choose_os);
+                    }else{
+                        choose_os="";
+                        rec_tv.setText("该系统版本对本机不可用！");
+                    }
+
+                    mAdapter.setmSelectPos(position, choose_os);
+                    mAdapter.notifyDataSetChanged();
+                }
+            });
+            listview_section.setVisibility(View.VISIBLE);
+
+            View mLine = new View(this);
+            mLine.setBackgroundColor(Color.BLACK);
+            mLine.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 2));
+
+            main.addView(listview_section);
+            main.addView(mLine);
+        }
+
+
+        private void showDiskList(int flag){
         //just show disk list
         section_select();
 
@@ -320,6 +465,7 @@ public class MainActivity extends Activity{
         */
 
         main.removeAllViews();
+        header_tv.setText("磁盘分区");
         for (Disk d : mDisks) {
             LinearLayout space = new LinearLayout(this);
             space.setOrientation(LinearLayout.HORIZONTAL);
@@ -366,6 +512,8 @@ public class MainActivity extends Activity{
 
     private void setOffNextStep(){
         recovery.setVisibility(View.GONE);
+
+        rec_tv.setText("");
         rec_tv.setVisibility(View.GONE);
     }
 
@@ -506,14 +654,16 @@ public class MainActivity extends Activity{
     public void download_dialog() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("提示");
-        builder.setMessage("开始下载系统恢复文件。");
+        builder.setMessage("系统镜像："+choose_os +"\n将开始下载。");
         builder.setPositiveButton("下载", new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // TODO Auto-generated method stub
-               // download();
-                download_file(url_win10, wimfile10.substring(0, wimfile10.lastIndexOf("/")));
+                // download();
+                //download_file(url_win10, wimfile10.substring(0, wimfile10.lastIndexOf("/")));
+                download_file(url_win10, config_dir);
+
             }
         });
         builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
@@ -758,7 +908,8 @@ public class MainActivity extends Activity{
 
     private void getConfig() {
         FileUtil.setMkdir(getApplicationContext());
-        String configname = "/storage/emulated/legacy/tsing_recovery/recovery.config";
+        String configname = config_dir + "recovery.config";
+
         file = new File(configname);
         if (!file.exists()) {
             FileWriter fw;
@@ -770,8 +921,7 @@ public class MainActivity extends Activity{
                 wimfile10 = "/storage/emulated/legacy/tsing_recovery/windows.wim";
                 efi_win = "/storage/emulated/legacy/tsing_recovery/efi.tar" ;
 
-                url_win10 = "http://192.168.0.185/dl/windows.wim";
-                //url_win10 = "https://qd.myapp.com/myapp/qqteam/AndroidQQ/mobileqq_android.apk";
+                url_win10 = "http://dev.openthos.org/winimg/windows.wim";
                 //url_efi = "http://192.168.0.185/dl/efi.tar";
                 url_efi = " ";
 
@@ -915,6 +1065,7 @@ public class MainActivity extends Activity{
 
             float w = (float)0.1 + ((float)(vol.getSectorEnd() - vol.getSectorStart())) / d.getSectorNum();
 
+            Log.i("getDiskView", "currect W: " + w);
             LinearLayout view = new LinearLayout(this);
             LinearLayout.LayoutParams viewParams = new LinearLayout.LayoutParams(0, viewHeight, w);
             view.setLayoutParams(viewParams);
@@ -1101,6 +1252,10 @@ public class MainActivity extends Activity{
             }
         }
         Log.v("WinRec", "EFI partition: " + choose_efi);
+        for (int k=0; k < deny_part.size(); k++){
+            Log.v("WinRec", "Denypartition: " + deny_part.get(k));
+        }
+
 
         //final ArrayAdapter<String> adapter = new ArrayAdapter<>(MainActivity.this, R.layout.listview_item1, data);
        /*
@@ -1314,16 +1469,16 @@ public class MainActivity extends Activity{
 
             switch(status){
                 case TYPE_SUCCESS:
-                    Toast.makeText(context,"Download Success!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context,"Success.", Toast.LENGTH_SHORT).show();
                     break;
                 case TYPE_FAILED:
-                    Toast.makeText(context,"Download Failed!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context,"Failed!", Toast.LENGTH_SHORT).show();
                     break;
                 case TYPE_PAUSED:
-                    Toast.makeText(context,"Download Paused!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context,"Paused.", Toast.LENGTH_SHORT).show();
                     break;
                 case TYPE_CANCELED:
-                    Toast.makeText(context,"Download Canceled!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(context,"Canceled.", Toast.LENGTH_SHORT).show();
                 default:
                     break;
             }

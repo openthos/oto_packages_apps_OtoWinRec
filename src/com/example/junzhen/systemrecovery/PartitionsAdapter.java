@@ -19,14 +19,14 @@ public class PartitionsAdapter extends BaseAdapter {
 
     private Context mContext;
     private ArrayList<String> mList;
-    private ArrayList<String> deny_part;
+    //private ArrayList<String> deny_part;
     private int mSelectPos = -1;
     private String mDevPart;
 
-    public PartitionsAdapter(Context context, ArrayList<String> list, ArrayList<String> deny_pos) {
+    public PartitionsAdapter(Context context, ArrayList<String> list) {
         mContext = context;
         mList = list;
-        deny_part = deny_pos;
+        //deny_part = deny_pos;
     }
 
     public void setmSelectPos(int pos, String devPart) {
@@ -60,8 +60,6 @@ public class PartitionsAdapter extends BaseAdapter {
         }
         viewHolder = (ViewHolder) convertView.getTag();
         viewHolder.name.setText(mList.get(i));
-
-
 
             if (mSelectPos == i) {
                 viewHolder.name.setTextColor(Color.BLACK);
