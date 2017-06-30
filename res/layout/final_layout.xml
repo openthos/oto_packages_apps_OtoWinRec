@@ -100,6 +100,7 @@
         >
 
         <TextView
+            android:id="@+id/header_tv"
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:text="@string/main_bar"
