@@ -119,6 +119,8 @@ public class MainActivity extends Activity{
     private String efi_dir="/data/local/tmp/efi/";
     private String wim_config="http://dev.openthos.org/winimg/wim.config";
     private String url_win10,url_efi;
+    private String wim_help="\n1.如果本地没有windows系统的wim镜像，需要先通过云盘下载我们官方的镜像或者用户自行下载，在磁盘分区列表选择恢复分区，即可开始恢复windows系统.\n" +
+                            "\n2.如果本地已有windows系统的wim镜像，请放置于/sdcard/tsing_recovery/windows.wim，则可以直接在磁盘分区列表中选择想要恢复的分区进行系统恢复.\n";
 
     private String downloads_rm ;
     private ProgressDialog mProgressDialog;
@@ -183,8 +185,9 @@ public class MainActivity extends Activity{
             public void onClick(View v) {
                 // TODO Auto-generated method stub
                 setOffNextStep();
-                showDiskList(1);
+
                 if (fileIsExists(wimfile10)) {
+                    showDiskList(1);
                     //setWiminfo();
                     i=3;
                     // checkintergrity();
@@ -203,12 +206,28 @@ public class MainActivity extends Activity{
                             setOnNextStep(3);
                         }
                     });
-                    builder.setNegativeButton("取消",null);
+                    //builder.setNegativeButton("取消",null);
                     builder.create();
                     builder.show();
 
                 } else {
-                    Toast.makeText(getApplication(), "没有找到系统镜像WIM文件，请先使用云盘镜像下载。", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getApplication(), "没有找到系统镜像WIM文件，请先使用云盘镜像下载。", Toast.LENGTH_LONG).show();
+
+                    AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                    builder.setTitle("提示");
+                    builder.setMessage("没有找到系统镜像WIM文件，请先使用云盘镜像下载或用户自行下载");
+                    builder.setNeutralButton("确定", new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // TODO Auto-generated method stub
+
+                            setOffNextStep();
+                            getWinList(1);
+                        }
+                    });
+                    builder.create();
+                    builder.show();
                 }
             }
         };
@@ -219,7 +238,6 @@ public class MainActivity extends Activity{
             public void onClick(View v) {
                 // TODO Auto-generated method stub
                 setOffNextStep();
-
                 getWinList(1);
 
                 /*
@@ -283,16 +301,16 @@ public class MainActivity extends Activity{
         View.OnClickListener helpMessaggelistener = new View.OnClickListener(){
             @Override
             public void onClick(View v) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle("系统恢复流程");
-                builder.setMessage( "1.如果本地没有windows系统的wim镜像，需要先通过云盘下载我们官方的镜像，在磁盘分区列表选择恢复分区，即可开始恢复windows系统.\n\n" +
-                                "2.如果本地已有windows系统的wim镜像，则可以直接在磁盘分区列表中选择想要恢复的分区进行系统恢复.\n" );
+                setOffNextStep();
 
-                builder.setNeutralButton("确定", null);
-
-                builder.create();
-                builder.show();
-
+                main.removeAllViews();
+                header_tv.setText("系统恢复流程");
+                TextView tvHelp = new TextView(MainActivity.this);
+                tvHelp.setPadding(10, 10, 0, 0);
+                tvHelp.setTextSize(20);
+                tvHelp.setTextColor(Color.BLACK);
+                tvHelp.setText(wim_help);
+                main.addView(tvHelp);
             }
         };
         helpMessagge.setOnClickListener(helpMessaggelistener);
@@ -316,6 +334,7 @@ public class MainActivity extends Activity{
                         }
                     }
 
+
                     checkintergrity();
                     // dialog();
                 }else if(NextStepFlag == 10){
@@ -325,6 +344,13 @@ public class MainActivity extends Activity{
                     }
 
                     downloadWim();
+                }else if(NextStepFlag == 12){
+
+                    setOffNextStep();
+                    showDiskList(1);
+
+                    NextStepFlag = 11;
+                    setOnNextStep(3);
                 }
 
             }
@@ -334,6 +360,15 @@ public class MainActivity extends Activity{
        //getConfig();
         //downloads_rm = "rm -f " + wimfile10 + "  " + efi_win ;
         downloads_rm = "rm -f " + wimfile10 ;
+
+        main.removeAllViews();
+        header_tv.setText("系统恢复流程");
+        TextView tvHelp = new TextView(this);
+        tvHelp.setPadding(10, 10, 0, 0);
+        tvHelp.setTextSize(20);
+        tvHelp.setTextColor(Color.BLACK);
+        tvHelp.setText(wim_help);
+        main.addView(tvHelp);
 
         //showDiskList();
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -363,6 +398,7 @@ public class MainActivity extends Activity{
                 download_dialog();
             }
         }
+
 
         private void getWinList(int flag){
 
@@ -394,6 +430,7 @@ public class MainActivity extends Activity{
         private void showWinList() {
             ArrayList<String> datas = new ArrayList<>();
             final String devModel = Build.MODEL; //"THTF T Series"
+            String wimIsDownloaded = "[未下载]";
 
             try{
                 FileInputStream inputStream = new FileInputStream(config_dir + "wim.config");
@@ -401,7 +438,12 @@ public class MainActivity extends Activity{
                 String str = null;
                 while ((str = bufferedReader.readLine()) != null){
                     if(str.indexOf(devModel) != -1) {
-                        datas.add(str);
+
+                        if (fileIsExists(wimfile10)) {
+                            wimIsDownloaded = "[已下载]";
+                        }
+
+                        datas.add(wimIsDownloaded + "\t" + str.trim());
                         Log.v("WinRec", str);
                     }
                 }
@@ -434,11 +476,17 @@ public class MainActivity extends Activity{
                     //tv.setTextColor(Color.WHITE);
                     //view.setBackgroundResource(R.color.gray);
 
-                    String get_text =  ((TextView) view).getText().toString();
+                    String get_text =  ((TextView) view).getText().toString().trim();
+
                     if(get_text.indexOf(devModel) != -1) {
-                        choose_os = get_text.trim().substring(0, 10);
+                        choose_os = get_text.substring(get_text.indexOf("\t")+1 , get_text.indexOf("\t")+1 + 10);
                         Log.v("WinRec", "OS: " + choose_os);
 
+                        if(get_text.substring(0,5).equals("[已下载]")) {
+                            NextStepFlag = 12;
+                        }else{
+                            recovery.setText("下 载");
+                        }
                         rec_tv.setText("已选择系统版本： " + choose_os);
                     }else{
                         choose_os="";
@@ -521,6 +569,7 @@ public class MainActivity extends Activity{
 
     private void setOnNextStep(int flag){
         notice_flag = flag;
+        recovery.setText("下一步");
         recovery.setVisibility(View.VISIBLE);
         rec_tv.setVisibility(View.VISIBLE);
     }
@@ -890,21 +939,42 @@ public class MainActivity extends Activity{
 
     private void checkintergrity() {
 
-        checkprogressDialog = new ProgressDialog(MainActivity.this);
-        if (checkIntegrity == null) {
-            checkIntegrity = newcheckThread();
-            checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
-            checkprogressDialog.setCancelable(false);
-            checkprogressDialog.show();
-            checkIntegrity.start();
-        } else {
-            checkIntegrity = null;
-            checkIntegrity = newcheckThread();
-            checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
-            checkprogressDialog.setCancelable(false);
-            checkprogressDialog.show();
-            checkIntegrity.start();
-        }
+        final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle("提示");
+        builder.setMessage("将进行WIM镜像文件校验！");
+        builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // TODO Auto-generated method stub
+                checkprogressDialog = new ProgressDialog(MainActivity.this);
+                if (checkIntegrity == null) {
+                    checkIntegrity = newcheckThread();
+                    checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
+                    checkprogressDialog.setCancelable(false);
+                    checkprogressDialog.show();
+                    checkIntegrity.start();
+                } else {
+                    checkIntegrity = null;
+                    checkIntegrity = newcheckThread();
+                    checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
+                    checkprogressDialog.setCancelable(false);
+                    checkprogressDialog.show();
+                    checkIntegrity.start();
+                }
+
+            }
+        });
+        builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                // TODO Auto-generated method stub
+            }
+        });
+        builder.create();
+        builder.show();
+
     }
 
     public updateUIThread newmyThread() {
@@ -1150,13 +1220,14 @@ public class MainActivity extends Activity{
                 Log.v("WinRec", "Partition: " + choose_partition);
 
                 tvInfo.setText("[可用] "+vol.getfDisk() + vol.getInfo());
-                rec_tv.setText("已选择分区： " + choose_partition);
+                //rec_tv.setText("已选择分区： " + choose_partition);
 
             }else{
                 //choose_partition="";
                 tvInfo.setText("");
-                rec_tv.setText("");
             }
+
+            rec_tv.setText("已选择分区： " + choose_partition);
 
         }
     };

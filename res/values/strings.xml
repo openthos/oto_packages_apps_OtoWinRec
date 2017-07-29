@@ -33,7 +33,7 @@
     <string name="online">云端</string>
     <string name="offline">本地</string>
     <string name="left_bar">系统</string>
-    <string name="main_bar">磁盘分区</string>
+    <string name="main_bar">Windows系统恢复</string>
     <string name="help_info">帮助信息</string>
     <string name="bt_dl">Windows 镜像下载</string>
     <string name="bt_wim">Windows 镜像部署</string>
