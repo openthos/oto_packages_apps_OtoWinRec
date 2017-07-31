@@ -68,7 +68,6 @@ import okhttp3.Response;
 public class MainActivity extends Activity{
 
     // private ConfigTab configTab;
-    private MainTab mainTab;
     private static final int OUTPUT_BUFFER_SIZE = 1024;
 
     private String wimfile10;
@@ -119,8 +118,8 @@ public class MainActivity extends Activity{
     private String efi_dir="/data/local/tmp/efi/";
     private String wim_config="http://dev.openthos.org/winimg/wim.config";
     private String url_win10,url_efi;
-    private String wim_help="\n1.如果本地没有windows系统的wim镜像，需要先通过云盘下载我们官方的镜像或者用户自行下载，在磁盘分区列表选择恢复分区，即可开始恢复windows系统.\n" +
-                            "\n2.如果本地已有windows系统的wim镜像，请放置于/sdcard/tsing_recovery/windows.wim，则可以直接在磁盘分区列表中选择想要恢复的分区进行系统恢复.\n";
+    private String wim_help="\n1.当本地没有windows系统的wim镜像时,需要先云端镜像下载或者用户自行下载，在磁盘分区列表选择恢复分区，即可开始恢复windows系统。\n" +
+                            "\n2.当已有windows系统的wim镜像时，请放置于/sdcard/tsing_recovery/windows.wim，则可以直接在磁盘分区列表中选择想要恢复的分区进行系统恢复，过程中将进行文件正确性的校验。\n";
 
     private String downloads_rm ;
     private ProgressDialog mProgressDialog;
@@ -188,13 +187,11 @@ public class MainActivity extends Activity{
 
                 if (fileIsExists(wimfile10)) {
                     showDiskList(1);
-                    //setWiminfo();
                     i=3;
-                    // checkintergrity();
 
                     AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                     builder.setTitle("提示");
-                    builder.setMessage("请选择Windows恢复分区，并按“下一步”。");
+                    builder.setMessage("发现已下载系统镜像WIM文件，请选择Windows恢复分区进行恢复，并按“下一步”。");
                     builder.setNeutralButton("确定", new DialogInterface.OnClickListener() {
 
                         @Override
@@ -206,16 +203,13 @@ public class MainActivity extends Activity{
                             setOnNextStep(3);
                         }
                     });
-                    //builder.setNegativeButton("取消",null);
                     builder.create();
                     builder.show();
 
                 } else {
-                    //Toast.makeText(getApplication(), "没有找到系统镜像WIM文件，请先使用云盘镜像下载。", Toast.LENGTH_LONG).show();
-
                     AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                     builder.setTitle("提示");
-                    builder.setMessage("没有找到系统镜像WIM文件，请先使用云盘镜像下载或用户自行下载");
+                    builder.setMessage("没有发现系统镜像WIM文件，请先使用云盘镜像下载或用户自行下载。");
                     builder.setNeutralButton("确定", new DialogInterface.OnClickListener() {
 
                         @Override
@@ -386,7 +380,8 @@ public class MainActivity extends Activity{
                         // TODO Auto-generated method stub
                         exec(downloads_rm);
                         j=3;
-                        download_dialog();
+                        //download_dialog();
+                        download_file(url_win10, config_dir);
                     }
                 });
                 builder.setNegativeButton("取消",null);
@@ -395,7 +390,8 @@ public class MainActivity extends Activity{
             } else {
                 //弹出下载对话框
                 j=3;
-                download_dialog();
+                //download_dialog();
+                download_file(url_win10, config_dir);
             }
         }
 
@@ -415,7 +411,7 @@ public class MainActivity extends Activity{
                     @Override
                     public void onDismiss(DialogInterface dialogInterface) {
 
-                        showWinList();
+                        showWinList(0);
 
                     }
                 });
@@ -427,7 +423,7 @@ public class MainActivity extends Activity{
 
     }
 
-        private void showWinList() {
+        private void showWinList(final int flag) {
             ArrayList<String> datas = new ArrayList<>();
             final String devModel = Build.MODEL; //"THTF T Series"
             String wimIsDownloaded = "[未下载]";
@@ -463,6 +459,7 @@ public class MainActivity extends Activity{
 
             if(datas.isEmpty()){
                 datas.add("没有可用的Windows操作系统镜像!");
+                recovery.setEnabled(false);
             }
 
             mAdapter = new PartitionsAdapter(this, datas);
@@ -483,14 +480,17 @@ public class MainActivity extends Activity{
                         Log.v("WinRec", "OS: " + choose_os);
 
                         if(get_text.substring(0,5).equals("[已下载]")) {
-                            NextStepFlag = 12;
+                            if (flag != 0) {
+                                recovery.setText("重新下载");
+                            } else {
+                                NextStepFlag = 12;
+                            }
                         }else{
-                            recovery.setText("下 载");
+                            recovery.setText(" 下 载 ");
                         }
                         rec_tv.setText("已选择系统版本： " + choose_os);
                     }else{
                         choose_os="";
-                        //rec_tv.setText("该系统版本对本机不可用！");
                         rec_tv.setText("Windows系统镜像不可用！");
                     }
 
@@ -570,6 +570,7 @@ public class MainActivity extends Activity{
     private void setOnNextStep(int flag){
         notice_flag = flag;
         recovery.setText("下一步");
+        recovery.setEnabled(true);
         recovery.setVisibility(View.VISIBLE);
         rec_tv.setVisibility(View.VISIBLE);
     }
@@ -747,36 +748,8 @@ public class MainActivity extends Activity{
             downloadprogressDialog = new ProgressDialog(MainActivity.this);
             downloadprogressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
 
-
-/*
-            if (efiUpdateUIThread == null) {
-                efiUpdateUIThread = efiDownloadThread();
-                efiUpdateUIThread.start();
-            } else {
-                efiUpdateUIThread = null;
-                efiUpdateUIThread = efiDownloadThread();
-                efiUpdateUIThread.start();
-            }
-
-
-            if (mUpdateUIThread == null) {
-                mUpdateUIThread = wimDownloadThread();
-                mUpdateUIThread.start();
-            } else {
-                mUpdateUIThread = null;
-                mUpdateUIThread = wimDownloadThread();
-                mUpdateUIThread.start();
-            }
-	    */
-
-            if (mUpdateUIThread == null) {
-                mUpdateUIThread = newmyThread();
-                mUpdateUIThread.start();
-            } else {
-                mUpdateUIThread = null;
-                mUpdateUIThread = newmyThread();
-                mUpdateUIThread.start();
-            }
+            mUpdateUIThread = newmyThread();
+            mUpdateUIThread.start();
 
         } else {
             Toast.makeText(getApplication(), "网络未连接", Toast.LENGTH_LONG).show();
@@ -823,6 +796,14 @@ public class MainActivity extends Activity{
             mProgressDialog.setProgressNumberFormat("%1dMB/%2dMB");
 
             final DownloadTask downloadTask = new DownloadTask(MainActivity.this);
+
+            mProgressDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialogInterface) {
+                    setOffNextStep();
+                    showWinList(0);
+                }
+            });
 
             /*
             mProgressDialog.setButton(DialogInterface.BUTTON_NEUTRAL, "暂停", new DialogInterface.OnClickListener() {
@@ -941,27 +922,19 @@ public class MainActivity extends Activity{
 
         final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
         builder.setTitle("提示");
-        builder.setMessage("将进行WIM镜像文件校验！");
+        builder.setMessage("将进行WIM系统镜像文件校验。");
         builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
 
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 // TODO Auto-generated method stub
                 checkprogressDialog = new ProgressDialog(MainActivity.this);
-                if (checkIntegrity == null) {
-                    checkIntegrity = newcheckThread();
-                    checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
-                    checkprogressDialog.setCancelable(false);
-                    checkprogressDialog.show();
-                    checkIntegrity.start();
-                } else {
-                    checkIntegrity = null;
-                    checkIntegrity = newcheckThread();
-                    checkprogressDialog.setMessage("正在检验WIM文件完整性，请耐心等待…………");
-                    checkprogressDialog.setCancelable(false);
-                    checkprogressDialog.show();
-                    checkIntegrity.start();
-                }
+
+                checkIntegrity = newcheckThread();
+                checkprogressDialog.setMessage("正在检验WIM文件...");
+                checkprogressDialog.setCancelable(false);
+                checkprogressDialog.show();
+                checkIntegrity.start();
 
             }
         });
@@ -1099,17 +1072,6 @@ public class MainActivity extends Activity{
                 dos.flush();
                 InputStream myin = process.getInputStream();
                 InputStreamReader is = new InputStreamReader(myin);
-                /*
-                 buffer单行模式
-		 */
-
-                /*BufferedReader ibr = new BufferedReader(is);
-                String inline;
-                StringBuffer sb = new StringBuffer("");
-                while ((inline = ibr.readLine()) != null) {
-                    System.out.println(inline);
-                    sb.append(inline+"\n");
-                }*/
 
 
                 char[] buffer = new char[OUTPUT_BUFFER_SIZE];
@@ -1676,7 +1638,7 @@ public class MainActivity extends Activity{
 
             switch(status){
                 case TYPE_SUCCESS:
-                    Toast.makeText(context,"Success.", Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(context,"Success.", Toast.LENGTH_SHORT).show();
                     break;
                 case TYPE_FAILED:
                     Toast.makeText(context,"Failed!", Toast.LENGTH_SHORT).show();
@@ -1998,26 +1960,14 @@ public class MainActivity extends Activity{
                     Toast.makeText(getApplication(), "文件SHA1检验正确", Toast.LENGTH_LONG).show();
                     checkprogressDialog.dismiss();
 
-                    //listview.setVisibility(View.GONE);
-                   /*2016.04.13
-                    back_system.setVisibility(View.VISIBLE);
-                    listview.setVisibility(View.GONE);
-                    listview_section.setVisibility(View.VISIBLE);
-                    system.setVisibility(View.GONE);
-                    partition.setVisibility(View.VISIBLE);*/
-
-                    //recovery.setVisibility(View.VISIBLE);
-                    //listview_section.setVisibility(View.VISIBLE);
-                    //section_select();
                     dialog();
 
                     break;
                 case FileUtil.fileWrong:
                     Toast.makeText(getApplication(), "文件SHA1检验失败，请重新下载", Toast.LENGTH_LONG).show();
                     checkprogressDialog.dismiss();
-                    // create_wim.setEnabled(true);
-                    //download.setEnabled(true);
-
+                    setOffNextStep();
+                    showWinList(10);
                     break;
             }
             super.handleMessage(msg);

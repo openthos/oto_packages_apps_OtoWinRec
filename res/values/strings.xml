@@ -1,33 +1,9 @@
 <resources>
     <string name="app_name">Windows系统恢复</string>
     <string name="wim_dir">/storage/sdcard0/tsing_recovery/test.wim</string>
-    <string name="downloadaddress">http://dldir1.qq.com/qqfile/qq/QQ7.7/16096/QQ7.7.exe</string>
-    <string name="total">总体介绍：本APP主要包括两个界面：恢复系统和配置信息</string>
-    <string name="recovery">恢复系统，使用Microsoft官方提供的ESD文件实现Windows系统的恢复，主要操作有：
-    1.点击屏幕下方的“恢复系统”按钮，弹出用户选择对话框；
-    2.选择普通用户。
-    警告：此时不能进行其他操作（包括关机等危险动作）
-    进度完成后，系统恢复完毕</string>
-    <string name="setup">配置信息，自定义APP的预设信息，主要操作有：
-    1.wim文件：自定义输入ESD文件的位置；
-    2.下载地址：自定义输入ESD文件的下载网址；
-    3.命令行：执行shell命令
-    点击“保存”按钮后，存储在配置文件</string>
-    <string name="introduction1" >一、使用方法\n</string>
-    <string name="introduction11">1.应用范围</string>
-    <string name="introduction111">\t该工具会在扬天、启天以及NEW THINKCENTRE机型且预装WINDOWS XP以及WINDOWS7、WINDOWS8、WINDOWS8.1、WINDOWS10非Edu机型中带有。</string>
-    <string name="introduction12">2.能否备份WIN10系统?</string>
-    <string name="introduction121">\t1.0版本不支持，仅支持WIN7以及以下版本。
-    \t1.1版本开始支持UEFI引导的GPT分区的WIN8、WIN8.1和WIN10。</string>
-    <string name="introduction13">3.对u盘有没有特殊要求？</string>
-    <string name="introduction131">\tU盘性能对软件体验影响较大，优先推荐USB3.0设备。从之前的测试结果来看，越高端的U盘，性能和效果越好，备份速度块，启动快。
-        另外，对大小也有要求。软件会根据备份大小计算一个合理的数值，移动设备必须大于该数值才可以使用。</string>
-    <string name="introduction2" >二、备份机制\n</string>
-    <string name="introduction21" >\tWIM是英文Microsoft Windows Imaging Format(WIM)的简称，它是Windows基于文件的映像格式。WIM 映像格式还允许在一个实际文件中存储多个映像。
-        WIM 映像格式还启用了压缩和单一实例，从而可大大减小映像文件的大小。WIM虽然采用类似Ghost的方式进行系统安装，却比Ghost更灵活，它允许我们在把镜像文件恢复到硬盘之前，选择恢复分区，并进行其他简单的配置。</string>
+
     <string name="title_activity_recovery">RecoveryActivity</string>
     <string name="wechat">tongfang</string>
-    <string name="tip">请选择您要恢复的系统！</string>
     <string name="yes">确定</string>
     <string name="no">取消</string>
     <string name="online">云端</string>
@@ -35,8 +11,8 @@
     <string name="left_bar">系统</string>
     <string name="main_bar">Windows系统恢复</string>
     <string name="help_info">帮助信息</string>
-    <string name="bt_dl">Windows 镜像下载</string>
-    <string name="bt_wim">Windows 镜像部署</string>
+    <string name="bt_dl">1.云端系统镜像下载</string>
+    <string name="bt_wim">2.恢复Windows系统</string>
     <string name="bt_efi">Windows EFI 备份</string>
     <string name="next_step">下一步</string>
 </resources>
